@@ -8,25 +8,22 @@ import {
   faBarcode, 
   faUpload, 
   faFile, 
-  faSyncAlt 
+  faSyncAlt,
+  faExclamationTriangle
 } from "@fortawesome/free-solid-svg-icons";
-import Tesseract from "tesseract.js";
 import styles from "./styles.module.css";
 import { APELLIDOS_COLOMBIANOS } from "../utils/apellidos_colombianos";
+import Tesseract from "tesseract.js";
 
 // ============================================================================
-// LÓGICA DE PARSEO (CÉDULAS COLOMBIANAS)
+// LÓGICA DE PARSEO (Mantenida igual)
 // ============================================================================
 const parsearDatosEscaneados = (rawData) => {
   if (!rawData || rawData.length < 5) return null;
 
-  console.log("=== INICIANDO PARSEO ===");
-  
-  // 1. LIMPIEZA INICIAL
   let cleanData = "";
   for (let i = 0; i < rawData.length; i++) {
     const charCode = rawData.charCodeAt(i);
-    // Dejar pasar solo lo útil: Letras, Números, Ñ, Espacios
     if ((charCode >= 48 && charCode <= 57) || 
         (charCode >= 65 && charCode <= 90) || 
         (charCode >= 97 && charCode <= 122) || 
@@ -38,9 +35,7 @@ const parsearDatosEscaneados = (rawData) => {
     }
   }
   const dataNormalizada = cleanData.replace(/\s+/g, " ").trim();
-  console.log("Data Normalizada:", dataNormalizada);
   
-  // CASO 1: CÉDULA DIGITAL (PubDSK)
   if (dataNormalizada.includes("PubDSK") || rawData.includes("PubDSK")) {
      try {
         const indexAnchor = cleanData.indexOf("PubDSK");
@@ -53,14 +48,10 @@ const parsearDatosEscaneados = (rawData) => {
             if (match) {
                 const cedula = parseInt(match[1].slice(-10), 10).toString();
                 const nombresPegados = match[2];
-                // const genero = match[3];
-                // const f = match[4];
-                
                 let apellidos = "";
                 let nombres = "";
                 let resto = nombresPegados;
                 let foundAp1 = false;
-                
                 if (typeof APELLIDOS_COLOMBIANOS !== 'undefined') {
                   for (const ap of APELLIDOS_COLOMBIANOS) {
                       if (resto.startsWith(ap)) { apellidos += ap; resto = resto.substring(ap.length); foundAp1 = true; break; }
@@ -71,17 +62,13 @@ const parsearDatosEscaneados = (rawData) => {
                       }
                       nombres = resto;
                   } else { apellidos = nombresPegados; nombres = ""; }
-                } else {
-                   apellidos = nombresPegados;
-                }
-
+                } else { apellidos = nombresPegados; }
                 return { tipo: "CEDULA_DIGITAL", cedula, apellidos: apellidos.trim(), nombres: nombres.trim() };
             }
         }
-     } catch (e) { console.error("Error Digital:", e); }
+     } catch (e) {}
   }
 
-  // CASO 2: CÉDULA ANTIGUA (Estrategia Sándwich)
   const regexSandwich = /(\d{7,15})\s*([A-ZÑ\s]+?)\s*0([MF])(\d{8})/;
   const match = dataNormalizada.match(regexSandwich);
 
@@ -92,30 +79,23 @@ const parsearDatosEscaneados = (rawData) => {
       const cedula = parseInt(cedulaRaw, 10).toString();
       const textoNombres = match[2].trim(); 
       const partesNombre = textoNombres.split(" ").filter(Boolean);
-      
       let apellidos = "";
       let nombres = "";
-
       if (partesNombre.length >= 3) {
         apellidos = `${partesNombre[0]} ${partesNombre[1]}`;
         nombres = partesNombre.slice(2).join(" ");
       } else if (partesNombre.length === 2) {
         apellidos = partesNombre[0];
         nombres = partesNombre[1];
-      } else {
-        apellidos = textoNombres;
-      }
-
+      } else { apellidos = textoNombres; }
       return { tipo: "CEDULA_ANTIGUA", cedula, apellidos: apellidos.trim(), nombres: nombres.trim() };
-    } catch (e) { console.error("Error procesando antigua:", e); }
+    } catch (e) {}
   }
   
-  // Fallback solo números (si el usuario escanea un código simple)
   const soloNumeros = cleanData.replace(/\D/g, "");
   if (soloNumeros.length >= 7) {
      return { tipo: "CEDULA_SIMPLE", cedula: soloNumeros.slice(0, 15) };
   }
-  
   return null;
 };
 
@@ -123,402 +103,420 @@ const parsearDatosEscaneados = (rawData) => {
 // COMPONENTE: ScannerModal
 // ============================================================================
 const ScannerModal = ({ isOpen, onClose, onScan }) => {
-  const scannerRef = useRef(null);
-  const physicalInputRef = useRef(null);
-  const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
   const codeReaderRef = useRef(null);
-
-  const [error, setError] = useState("");
-  const [isMobile, setIsMobile] = useState(false);
-  const [activeMode, setActiveMode] = useState("camera"); // camera, physical, upload
-  
-  // Upload States
-  const [uploadedFileName, setUploadedFileName] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
-  
-  // Flash/Torch States
-  const [videoTrack, setVideoTrack] = useState(null);
-  const [torchOn, setTorchOn] = useState(false);
-  const [hasTorch, setHasTorch] = useState(false);
-
-  // Buffer para escáner físico
+  const streamRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const physicalInputRef = useRef(null);
   const bufferRef = useRef("");
   const timeoutRef = useRef(null);
-  const [showSecurityWarning, setShowSecurityWarning] = useState(false);
 
+  const [error, setError] = useState("");
+  const [activeMode, setActiveMode] = useState("camera");
+  const [torchOn, setTorchOn] = useState(false);
+  const [isLandscape, setIsLandscape] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [facingMode, setFacingMode] = useState('environment');
+
+  // Detectar orientación
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768 || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
+    const checkOrientation = () => {
+      const isLandscapeNow = window.innerWidth > window.innerHeight;
+      setIsLandscape(isLandscapeNow);
     };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+    
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
   }, []);
 
-  // --- LÓGICA DE LIMPIEZA ---
-  const limpiarBuffer = useCallback((data) => {
-    if (!data) return "";
-    return data
-      .replace(/<F\d+>/gi, "")
-      .replace(/<CR>|<LF>|<GS>|<RS>|<US>/gi, "")
-      .split("")
-      .filter((ch) => {
-        const code = ch.charCodeAt(0);
-        return (code >= 32 && code <= 126) || code === 209 || code === 241;
-      })
-      .join("");
+  // Inicializar ZXing reader
+  useEffect(() => {
+    const hints = new Map();
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+      BarcodeFormat.PDF_417, 
+      BarcodeFormat.QR_CODE, 
+      BarcodeFormat.CODE_128
+    ]);
+    hints.set(DecodeHintType.TRY_HARDER, true);
+    
+    codeReaderRef.current = new BrowserMultiFormatReader(hints);
+    
+    return () => {
+      if (codeReaderRef.current) {
+        codeReaderRef.current.reset();
+      }
+    };
   }, []);
 
-  // --- PROCESAR BUFFER FÍSICO ---
-  const procesarBuffer = useCallback(() => {
-    const raw = bufferRef.current;
-    bufferRef.current = "";
-    
-    const dataLimpia = limpiarBuffer(raw);
-    if (!dataLimpia || dataLimpia.length < 3) return;
-
-    const resultado = parsearDatosEscaneados(raw); // Usamos raw para intentar detectar PubDSK antes de limpiar
-    
-    if (resultado) {
-      onScan(resultado);
-    } else {
-      onScan({ tipo: "CODIGO_SIMPLE", codigo: dataLimpia });
-    }
+  // Función de escaneo exitoso
+  const handleScanSuccess = useCallback((parsedData) => {
+    stopCamera();
+    onScan(parsedData);
     onClose();
-  }, [limpiarBuffer, onScan, onClose]);
+  }, [onScan, onClose]);
 
-  // --- CÁMARA: INICIALIZACIÓN PRO (1080p + PDF417) ---
-  const handleCameraScan = useCallback(
-    (text) => {
-      if (text.length < 8) return; // Filtro de ruido
-      const dataLimpia = limpiarBuffer(text);
-      const resultado = parsearDatosEscaneados(dataLimpia);
-      if (resultado) {
-        onScan(resultado);
-        onClose();
-      }
-    },
-    [limpiarBuffer, onScan, onClose]
-  );
-
-  const toggleTorch = async () => {
-    if (videoTrack && hasTorch) {
-      try {
-        await videoTrack.applyConstraints({
-          advanced: [{ torch: !torchOn }]
-        });
-        setTorchOn(!torchOn);
-      } catch (err) {
-        console.error("Error cambiando flash:", err);
-      }
+  // Iniciar cámara
+  const startCamera = useCallback(async () => {
+    if (streamRef.current && videoRef.current && !videoRef.current.paused) {
+      return;
     }
-  };
 
-  const initScanner = useCallback(async () => {
-    if (!scannerRef.current) return;
-    
     try {
-      const hints = new Map();
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-        BarcodeFormat.PDF_417, // Prioridad absoluta Cédula
-        BarcodeFormat.QR_CODE,
-        BarcodeFormat.CODE_128
-      ]);
-      hints.set(DecodeHintType.TRY_HARDER, true);
+      setError("");
+      setIsLoading(true);
+      
+      // Detener stream existente
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
 
-      const codeReader = new BrowserMultiFormatReader(hints);
-      codeReaderRef.current = codeReader;
-
-      const videoElement = document.createElement("video");
-      videoElement.style.width = "100%";
-      videoElement.style.height = "100%";
-      videoElement.style.objectFit = "cover";
-
-      scannerRef.current.innerHTML = "";
-      scannerRef.current.appendChild(videoElement);
-
-      // ALTA RESOLUCIÓN
       const constraints = {
         video: { 
-          facingMode: "environment",
+          facingMode: facingMode,
           width: { ideal: 1920 },
           height: { ideal: 1080 },
-          focusMode: "continuous"
+          focusMode: "continuous",
+          advanced: [{ torch: torchOn }]
         }
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      
-      // DETECTAR LINTERNA
-      const track = stream.getVideoTracks()[0];
-      setVideoTrack(track);
-      
-      const capabilities = track.getCapabilities ? track.getCapabilities() : {};
-      if (capabilities.torch) setHasTorch(true);
+      streamRef.current = stream;
 
-      videoElement.srcObject = stream;
-      videoElement.setAttribute("playsinline", "true");
-      await videoElement.play();
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute("playsinline", "true");
+        
+        await videoRef.current.play();
+        setIsLoading(false);
 
-      codeReader.decodeFromStream(stream, videoElement, (result) => {
-        if (result) handleCameraScan(result.getText());
-      });
-
+        // Iniciar decodificación
+        codeReaderRef.current.decodeFromStream(stream, videoRef.current, (result, err) => {
+          if (result) {
+            const raw = result.getText();
+            const clean = raw.replace(/<[^>]+>/g, '');
+            if (clean.length > 5) {
+              const parsed = parsearDatosEscaneados(clean);
+              if (parsed) {
+                handleScanSuccess(parsed);
+              }
+            }
+          }
+        });
+      }
     } catch (err) {
-      console.error("Error inicializando scanner:", err);
-      setError("No se pudo acceder a la cámara. Verifique permisos y HTTPS.");
+      console.error("Error cámara:", err);
+      setIsLoading(false);
+      setError(`Error: ${err.message}. Verifica HTTPS y permisos de cámara.`);
     }
-  }, [handleCameraScan]);
+  }, [facingMode, torchOn, handleScanSuccess]);
 
-  const stopScanner = useCallback(() => {
+  // Detener cámara
+  const stopCamera = useCallback(() => {
     if (codeReaderRef.current) {
       codeReaderRef.current.reset();
-      codeReaderRef.current = null;
     }
-    if (videoTrack) {
-      videoTrack.stop();
-      setVideoTrack(null);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
-    setTorchOn(false);
-  }, [videoTrack]);
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }, []);
 
-  // --- SUBIDA DE ARCHIVOS ---
+  // Control de flash
+  const toggleTorch = async () => {
+    if (streamRef.current) {
+      const track = streamRef.current.getVideoTracks()[0];
+      
+      try {
+        if (track.getCapabilities && 'torch' in track.getCapabilities()) {
+          await track.applyConstraints({
+            advanced: [{ torch: !torchOn }]
+          });
+          setTorchOn(!torchOn);
+        } else {
+          // Intentar método alternativo
+          const imageCapture = new ImageCapture(track);
+          const photoCapabilities = await imageCapture.getPhotoCapabilities();
+          if (photoCapabilities.fillLightMode && photoCapabilities.fillLightMode.includes('flash')) {
+            alert("Flash disponible pero requiere configuración adicional");
+          } else {
+            alert("Tu dispositivo no soporta control de flash web");
+          }
+        }
+      } catch (e) {
+        console.error("Error flash:", e);
+        alert("No se pudo controlar el flash");
+      }
+    }
+  };
+
+  // Cambiar cámara (frontal/trasera)
+  const switchCamera = async () => {
+    stopCamera();
+    setFacingMode(prev => prev === 'environment' ? 'user' : 'environment');
+    setTimeout(() => startCamera(), 300);
+  };
+
+  // Efecto para manejar modos
+  useEffect(() => {
+    if (isOpen && activeMode === "camera") {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+
+    return () => {
+      stopCamera();
+    };
+  }, [isOpen, activeMode, startCamera, stopCamera]);
+
+  // Modo físico - escaneo por teclado
+  useEffect(() => {
+    if (activeMode === "physical" && physicalInputRef.current) {
+      physicalInputRef.current.focus();
+      
+      const handleKeyDown = (e) => {
+        clearTimeout(timeoutRef.current);
+        
+        if (e.key === 'Enter' || e.key === 'Tab') {
+          if (bufferRef.current.length > 5) {
+            const parsed = parsearDatosEscaneados(bufferRef.current);
+            if (parsed) {
+              handleScanSuccess(parsed);
+            }
+          }
+          bufferRef.current = "";
+        } else if (e.key.length === 1) {
+          bufferRef.current += e.key;
+        }
+        
+        timeoutRef.current = setTimeout(() => {
+          bufferRef.current = "";
+        }, 200);
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [activeMode, handleScanSuccess]);
+
+  // Modo upload
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    setUploadedFileName(file.name);
+    
     setIsUploading(true);
     setError("");
     
     try {
-      const imageUrl = URL.createObjectURL(file);
-      const hints = new Map();
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-        BarcodeFormat.PDF_417, BarcodeFormat.CODE_128, BarcodeFormat.QR_CODE
-      ]);
-      hints.set(DecodeHintType.TRY_HARDER, true);
-
-      const codeReader = new BrowserMultiFormatReader(hints);
-      
-      // Intentar lectura directa ZXing
-      try {
-        const result = await codeReader.decodeFromImageUrl(imageUrl);
-        if (result) {
-            const dataLimpia = limpiarBuffer(result.getText());
-            const resultado = parsearDatosEscaneados(dataLimpia);
-            onScan(resultado || { tipo: "CODIGO_SIMPLE", codigo: dataLimpia });
-            onClose();
-            return;
-        }
-      } catch (e) { console.log("Fallo lectura directa, intentando OCR..."); }
-
-      // Fallback OCR
-      const { data: { text } } = await Tesseract.recognize(imageUrl, 'spa', {
-         logger: m => console.log(m) 
+      const url = URL.createObjectURL(file);
+      const { data: { text } } = await Tesseract.recognize(url, 'spa', {
+        logger: m => console.log(m)
       });
       
-      const regexCodigos = /\b\d{8,20}\b/g;
-      const matches = text.match(regexCodigos);
-          
-      if (matches && matches.length > 0) {
-        onScan({ tipo: "CODIGO_SIMPLE", codigo: matches[0] });
+      // Buscar números de cédula
+      const numbers = text.match(/\d{6,12}/g);
+      if (numbers && numbers.length > 0) {
+        // Tomar el número más largo como posible cédula
+        const longestNumber = numbers.reduce((a, b) => a.length > b.length ? a : b);
+        onScan({ tipo: "CODIGO_SIMPLE", codigo: longestNumber });
         onClose();
       } else {
-        setError('No se encontraron códigos claros en la imagen.');
+        setError("No se detectaron números en la imagen. Intenta con una foto más clara.");
       }
-
-      URL.revokeObjectURL(imageUrl);
-    } catch (error) {
-      setError(`Error procesando imagen: ${error.message}`);
-    } finally {
-      setIsUploading(false);
-      setUploadedFileName('');
-      if (fileInputRef.current) fileInputRef.current.value = '';
+    } catch (e) {
+      console.error("Error procesando imagen:", e);
+      setError("Error procesando la imagen. Intenta con otra foto.");
     }
+    
+    setIsUploading(false);
   };
-
-  // --- ESCÁNER FÍSICO (EVENTOS) ---
-  useEffect(() => {
-    if (!isOpen || activeMode !== "physical") return;
-
-    const handleKeyDown = (e) => {
-      const key = e.key;
-      // Bloquear teclas de navegación si es necesario
-      if (key === "Enter") {
-        e.preventDefault();
-        if (bufferRef.current.length > 5) procesarBuffer();
-        return;
-      }
-      if (key.length === 1) {
-        bufferRef.current += key;
-        if (timeoutRef.current) clearTimeout(timeoutRef.current);
-        timeoutRef.current = setTimeout(() => {
-          if (bufferRef.current.length >= 7) procesarBuffer();
-        }, 300); 
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    // Auto-focus trampa
-    const interval = setInterval(() => {
-         if(physicalInputRef.current) physicalInputRef.current.focus({preventScroll:true});
-    }, 500);
-
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-      clearInterval(interval);
-    };
-  }, [isOpen, activeMode, procesarBuffer]);
-
-  // --- EFECTOS GENERALES ---
-  useEffect(() => {
-    if (isOpen && activeMode === "camera") {
-      setError("");
-      const timer = setTimeout(initScanner, 300);
-      return () => {
-        clearTimeout(timer);
-        stopScanner();
-      };
-    } else {
-      stopScanner();
-    }
-  }, [isOpen, activeMode, initScanner, stopScanner]);
 
   if (!isOpen) return null;
 
   return (
     <div className={styles.modalOverlay}>
-      <div className={`${styles.modalContent} ${isMobile ? styles.mobileModal : ''}`}>
+      <div className={styles.modalContent}>
         
-        {/* HEADER */}
+        {/* Header */}
         <div className={styles.modalHeader}>
-          <h3>Escanear Código</h3>
-          <button type="button" onClick={onClose} className={styles.closeButton}>
+          <h3>Escanear Cédula</h3>
+          <button onClick={onClose} className={styles.closeButton}>
             <FontAwesomeIcon icon={faTimes} />
           </button>
         </div>
 
-        {/* CONTENIDO DINÁMICO */}
-        <div className={styles.scannerContainer} style={{flex: 1, position: 'relative', display: 'flex', flexDirection: 'column'}}>
+        <div className={styles.scannerContainer}>
           
           {/* MODO CÁMARA */}
           {activeMode === "camera" && (
-            <>
-              {error ? (
-                <div className={styles.scannerError} style={{color: 'white', textAlign: 'center', marginTop: 'auto', marginBottom: 'auto'}}>
-                    <p>{error}</p>
-                    <button onClick={() => { setError(""); initScanner(); }} className={styles.retryButton}>
-                        Reintentar
-                    </button>
+            <div className={`${styles.videoContainer} ${!isLandscape ? styles.portrait : ''}`}>
+              <video ref={videoRef} />
+              
+              {/* Overlay de orientación */}
+              {!isLandscape && (
+                <div className={styles.orientationMessage}>
+                  <FontAwesomeIcon icon={faSyncAlt} className={styles.spin} /> 
+                  <div style={{marginTop: '10px'}}>Gira el celular horizontalmente</div>
                 </div>
-              ) : (
-                <>
-                    <div ref={scannerRef} className={styles.qrReader} />
-                    <div className={styles.scannerOverlay}>
-                        <div className={styles.scanLine}></div>
-                    </div>
-                    <p className={styles.scannerHint}>
-                        Gira el celular y encaja el código de barras en el recuadro
-                    </p>
-                    {hasTorch && (
-                        <button 
-                        className={`${styles.torchButton} ${torchOn ? styles.torchButtonActive : ''}`}
-                        onClick={toggleTorch}
-                        >
-                        <FontAwesomeIcon icon={faBolt} />
-                        </button>
-                    )}
-                </>
               )}
-            </>
+
+              {/* Overlay de escaneo */}
+              <div className={styles.scannerOverlay}>
+                <div className={styles.scanLine}></div>
+              </div>
+
+              {/* Instrucciones */}
+              <p className={styles.scannerHint}>
+                {isLandscape 
+                  ? "Encuadra el código de barras en el recuadro" 
+                  : "Coloca el dispositivo en posición horizontal"}
+              </p>
+
+              {/* Botón flash */}
+              <button 
+                onClick={toggleTorch}
+                className={`${styles.torchButton} ${torchOn ? styles.active : ''}`}
+                disabled={isLoading}
+              >
+                <FontAwesomeIcon icon={faBolt} />
+              </button>
+
+              {/* Botón cambiar cámara (solo si hay frontal) */}
+              <button 
+                onClick={switchCamera}
+                style={{
+                  position: 'absolute',
+                  right: '20px',
+                  bottom: '40px',
+                  background: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  border: 'none',
+                  width: '50px',
+                  height: '50px',
+                  borderRadius: '50%',
+                  zIndex: 30,
+                  cursor: 'pointer'
+                }}
+              >
+                <FontAwesomeIcon icon={faSyncAlt} />
+              </button>
+
+              {/* Mensaje de error */}
+              {error && (
+                <div className={styles.errorMessage}>
+                  <FontAwesomeIcon icon={faExclamationTriangle} /> {error}
+                  <br />
+                  <button onClick={startCamera} className={styles.retryButton}>
+                    Reintentar
+                  </button>
+                </div>
+              )}
+
+              {/* Indicador de carga */}
+              {isLoading && (
+                <div style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  color: 'white',
+                  fontSize: '1.2rem',
+                  zIndex: 40
+                }}>
+                  Iniciando cámara...
+                </div>
+              )}
+            </div>
           )}
 
           {/* MODO FÍSICO */}
           {activeMode === "physical" && (
-            <div className={styles.physicalScannerContainer} style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white'}}>
-                <FontAwesomeIcon icon={faBarcode} size="4x" style={{marginBottom: '20px', opacity: 0.8}} />
-                <h3>Modo Escáner USB</h3>
-                <p style={{textAlign: 'center', maxWidth: '80%', opacity: 0.7}}>
-                   Conecte su lector y escanee el código. No necesita hacer clic en ningún lado.
-                </p>
-                <input
-                    ref={physicalInputRef}
-                    type="text"
-                    className={styles.hiddenInputTrap}
-                    style={{opacity: 0, position: 'absolute'}}
-                    autoFocus
-                />
+            <div className={styles.alternativeMode}>
+              <FontAwesomeIcon icon={faBarcode} size="4x" style={{marginBottom: '20px'}} />
+              <p>Modo escáner físico activo</p>
+              <p style={{fontSize: '0.9rem', marginTop: '10px', color: '#ccc'}}>
+                Escanea el código de barras con tu lector físico
+              </p>
+              <input 
+                ref={physicalInputRef} 
+                autoFocus 
+                className={styles.hiddenInput}
+                placeholder="Los códigos escaneados aparecerán aquí"
+              />
             </div>
           )}
 
-          {/* MODO SUBIR ARCHIVO */}
+          {/* MODO UPLOAD */}
           {activeMode === "upload" && (
-             <div className={styles.uploadContainer} style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white'}}>
-                <div className={styles.uploadArea} style={{textAlign: 'center'}}>
-                    <FontAwesomeIcon icon={faFile} size="3x" style={{marginBottom: '15px'}} />
-                    <h3>Subir Imagen</h3>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      id="barcode-file"
-                      accept=".jpg,.jpeg,.png,.webp"
-                      onChange={handleFileUpload}
-                      disabled={isUploading}
-                      style={{display: 'none'}}
-                    />
-                    <label 
-                      htmlFor="barcode-file" 
-                      className={styles.uploadButton}
-                      style={{
-                          display: 'inline-block', 
-                          padding: '10px 20px', 
-                          background: '#2563eb', 
-                          borderRadius: '8px', 
-                          cursor: 'pointer',
-                          marginTop: '10px'
-                      }}
-                    >
-                      {isUploading ? (
-                        <>
-                          <FontAwesomeIcon icon={faSyncAlt} spin /> Procesando...
-                        </>
-                      ) : (
-                        <>
-                          <FontAwesomeIcon icon={faUpload} /> Seleccionar Imagen
-                        </>
-                      )}
-                    </label>
-                    <p style={{fontSize: '0.8rem', marginTop: '15px', opacity: 0.7}}>
-                        Soporta imágenes de alta calidad (JPG, PNG)
-                    </p>
-                    {error && <p style={{color: '#ef4444', marginTop: '10px'}}>{error}</p>}
-                </div>
-             </div>
+            <div className={styles.alternativeMode}>
+              <FontAwesomeIcon icon={faUpload} size="4x" style={{marginBottom: '20px'}} />
+              <p>Sube una foto del documento</p>
+              
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleFileUpload} 
+                className={styles.hiddenInput} 
+                id="file-upload"
+                ref={fileInputRef}
+                disabled={isUploading}
+              />
+              
+              <label 
+                htmlFor="file-upload" 
+                className={styles.uploadButton}
+                style={isUploading ? {opacity: 0.7, cursor: 'not-allowed'} : {}}
+              >
+                {isUploading ? (
+                  <>
+                    <FontAwesomeIcon icon={faSyncAlt} spin /> Procesando...
+                  </>
+                ) : (
+                  "Seleccionar Foto"
+                )}
+              </label>
+              
+              <p style={{fontSize: '0.8rem', marginTop: '20px', color: '#aaa'}}>
+                Formatos: JPG, PNG, GIF • Máx. 5MB
+              </p>
+            </div>
           )}
+
         </div>
 
-        {/* TABS INFERIORES */}
+        {/* Tabs inferiores */}
         <div className={styles.scannerTabs}>
-          <button
-            className={`${styles.scannerTab} ${activeMode === "camera" ? styles.activeTab : ""}`}
+          <button 
+            className={activeMode === "camera" ? styles.activeTab : ""} 
             onClick={() => setActiveMode("camera")}
           >
             <FontAwesomeIcon icon={faCamera} /> Cámara
           </button>
-          <button
-            className={`${styles.scannerTab} ${activeMode === "physical" ? styles.activeTab : ""}`}
+          <button 
+            className={activeMode === "physical" ? styles.activeTab : ""} 
             onClick={() => setActiveMode("physical")}
           >
             <FontAwesomeIcon icon={faBarcode} /> Físico
           </button>
-          <button
-            className={`${styles.scannerTab} ${activeMode === "upload" ? styles.activeTab : ""}`}
+          <button 
+            className={activeMode === "upload" ? styles.activeTab : ""} 
             onClick={() => setActiveMode("upload")}
           >
-            <FontAwesomeIcon icon={faUpload} /> Archivo
+            <FontAwesomeIcon icon={faUpload} /> Subir
           </button>
         </div>
+
       </div>
     </div>
   );

@@ -9,6 +9,7 @@
   --border-color: #e5e7eb;
   --success-color: #10b981;
   --danger-color: #ef4444;
+  --torch-active: #ffd700;
 }
 
 /* Contenedor Principal (App) */
@@ -85,10 +86,10 @@
   color: var(--text-main);
   background: transparent;
   outline: none;
-  font-family: monospace; /* Para que los números se vean alineados */
+  font-family: monospace;
 }
 
-/* Estilo para inputs de solo lectura (parecen datos ya procesados) */
+/* Estilo para inputs de solo lectura */
 .inputGroup input[readonly] {
   color: #111827;
   font-weight: 500;
@@ -102,23 +103,24 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.9); /* Fondo más oscuro para enfoque */
+  background: rgba(0, 0, 0, 0.95);
   backdrop-filter: blur(4px);
   display: flex;
-  justify_content: center;
+  justify-content: center;
   align-items: center;
   z-index: 9999;
   animation: fadeIn 0.2s ease-out;
 }
 
 .modalContent {
-  background: #000; /* Fondo negro para integrarse con la cámara */
+  background: #000;
   width: 100%;
   height: 100%;
   max-width: 100%;
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
 }
 
 /* Header del Modal */
@@ -129,9 +131,9 @@
   right: 0;
   padding: 20px;
   display: flex;
-  justify_content: space-between;
+  justify-content: space-between;
   align-items: center;
-  z-index: 10;
+  z-index: 50;
   background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
 }
 
@@ -151,311 +153,71 @@
   border-radius: 50%;
   display: flex;
   align-items: center;
-  justify_content: center;
-  cursor: pointer;
-  backdrop-filter: blur(4px);
-}
-
-/* --- AREA DE LA CÁMARA --- */
-.qrReader {
-  width: 100%;
-  height: 100%;
-  background: #000;
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-/* IMPORTANTE: Asegura que el video llene la pantalla */
-.qrReader video {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-}
-
-/* --- OVERLAY VISUAL DE ESCANEO (El recuadro rojo) --- */
-/* Agregaremos este div en el componente React abajo */
-.scanOverlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 80%;
-  max-width: 300px;
-  height: 200px;
-  border: 2px solid rgba(255, 255, 255, 0.5);
-  border-radius: 20px;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5); /* Oscurece lo que está fuera del cuadro */
-  z-index: 5;
-  overflow: hidden;
-}
-
-/* Línea roja animada */
-.scanLine {
-  width: 100%;
-  height: 2px;
-  background: #ef4444;
-  position: absolute;
-  top: 0;
-  box-shadow: 0 0 4px #ef4444;
-  animation: scanMove 2s infinite linear;
-}
-
-.scanInstruction {
-  position: absolute;
-  bottom: 100px;
-  left: 0;
-  right: 0;
-  text-align: center;
-  color: white;
-  z-index: 10;
-  font-size: 0.9rem;
-  opacity: 0.9;
-  text-shadow: 0 1px 2px black;
-  pointer-events: none;
-}
-
-@keyframes scanMove {
-  0% { top: 0%; opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { top: 100%; opacity: 0; }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-/* --- VARIABLES & RESET --- */
-/* (Mantén las variables anteriores igual) */
-
-/* ... (El resto del CSS de formContainer, scanBtn, inputs, modalOverlay, etc. se mantiene igual) ... */
-
-/* --- CAMBIOS IMPORTANTES AQUÍ ABAJO --- */
-
-/* Contenedor del video: Asegurar que ocupe todo */
-.qrReader {
-  width: 100%;
-  height: 100%;
-  background: #000;
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  overflow: hidden;
-}
-
-.qrReader video {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-}
-
-/* --- NUEVO OVERLAY: RECTÁNGULO PDF417 --- */
-.scanOverlay {
-  position: absolute;
-  top: 45%; /* Un poco más arriba del centro */
-  left: 50%;
-  transform: translate(-50%, -50%);
-  
-  /* DIMENSIONES PARA CÉDULA (4:1 aprox) */
-  width: 85%;
-  max-width: 400px;
-  height: 100px; 
-  
-  border: 2px solid rgba(255, 255, 255, 0.6);
-  border-radius: 8px; /* Bordes menos redondos para simular código de barras */
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); /* Oscurece el fondo */
-  z-index: 5;
-  overflow: hidden;
-}
-
-/* Línea láser vertical (mejor para PDF417 que se lee horizontalmente) */
-.scanLine {
-  width: 2px;
-  height: 100%;
-  background: #ef4444;
-  position: absolute;
-  left: 0;
-  box-shadow: 0 0 4px #ef4444;
-  animation: scanMoveHorizontal 2s infinite linear;
-}
-
-@keyframes scanMoveHorizontal {
-  0% { left: 0%; opacity: 0; }
-  10% { opacity: 1; }
-  90% { opacity: 1; }
-  100% { left: 100%; opacity: 0; }
-}
-
-.scanInstruction {
-  position: absolute;
-  top: 60%; /* Debajo del recuadro */
-  left: 0;
-  right: 0;
-  text-align: center;
-  color: white;
-  z-index: 10;
-  font-size: 0.95rem;
-  padding: 0 20px;
-  text-shadow: 0 1px 3px black;
-  pointer-events: none;
-}
-
-/* --- BOTÓN DE LINTERNA --- */
-.torchButton {
-  position: absolute;
-  bottom: 30px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255,255,255,0.4);
-  color: white;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 20;
   backdrop-filter: blur(4px);
-  font-size: 1.2rem;
-  transition: all 0.2s;
+  transition: background 0.3s;
 }
 
-.torchButtonActive {
-  background: rgba(255, 255, 0, 0.3);
-  border-color: rgba(255, 255, 0, 0.8);
-  color: #ffff00;
-  box-shadow: 0 0 15px rgba(255, 255, 0, 0.3);
+.closeButton:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
-.modalHeader {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    padding: 15px;
-    display: flex;
-    justify_content: space-between;
-    align-items: center;
-    z-index: 20;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
-}
-
-.modalHeader h3 {
-    color: white;
-    margin: 0;
-    font-size: 1rem;
-}
-.closeButton {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.5rem;
-    cursor: pointer;
-}
-/* ... (Mantén tus estilos generales de header, tabs, inputs igual) ... */
-
-/* --- ESTILOS DEL MODAL DE SCANNER MEJORADO --- */
-.modalOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.9);
-  display: flex;
-  justify_content: center;
-  align-items: center;
-  z-index: 9999;
-}
-
-.modalContent {
-  background: #000;
-  width: 100%;
-  height: 100%;
-  max-width: 100%; /* Full screen en móviles */
+/* --- CONTENEDOR DE SCANNER --- */
+.scannerContainer {
+  flex: 1;
+  position: relative;
   display: flex;
   flex-direction: column;
+  background: #000;
+}
+
+/* Video container */
+.videoContainer {
+  flex: 1;
   position: relative;
+  overflow: hidden;
+  background: #000;
 }
 
-.modalHeader {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  padding: 15px;
-  display: flex;
-  justify_content: space-between;
-  align-items: center;
-  z-index: 20;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
-}
-
-.modalHeader h2 {
-    color: white;
-    font-size: 1.2rem;
-    margin: 0;
-}
-
-.closeButton {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: white;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  backdrop-filter: blur(4px);
-}
-
-/* --- ÁREA DE CÁMARA --- */
-.qrReader {
+.videoContainer video {
   width: 100%;
   height: 100%;
-  background: #000;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  object-fit: cover;
+  transition: transform 0.3s ease;
 }
 
-.qrReader video {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
+/* Rotación forzada para modo vertical */
+.videoContainer.portrait video {
+  transform: rotate(90deg);
+  width: 100vh;
+  height: 100vw;
+  max-width: none;
+  max-height: none;
 }
 
-/* --- OVERLAY TIPO CÉDULA (Obliga a rotar o encajar) --- */
+/* Overlay de escaneo */
 .scannerOverlay {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  
-  /* Dimensiones rectangulares alargadas (Landscape) */
-  width: 85%;      
-  max-width: 500px;
-  height: 120px;   /* Altura típica para encajar el código PDF417 */
-  
+  width: 85%;
+  max-width: 400px;
+  height: 120px;
   border: 2px solid rgba(255, 255, 255, 0.7);
   border-radius: 8px;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7); /* Oscurece todo lo demás */
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
   z-index: 10;
   overflow: hidden;
+  pointer-events: none;
 }
 
-/* Línea láser de escaneo */
+/* Línea de escaneo animada */
 .scanLine {
   width: 4px;
   height: 100%;
-  background: #ef4444; /* Rojo */
+  background: #ef4444;
   position: absolute;
   left: 0;
   box-shadow: 0 0 10px #ef4444;
@@ -471,25 +233,41 @@
 
 .scannerHint {
   position: absolute;
-  top: 65%; /* Debajo del recuadro */
+  top: 65%;
   left: 0;
   right: 0;
   text-align: center;
   color: white;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   z-index: 20;
   text-shadow: 0 1px 3px black;
   pointer-events: none;
 }
 
-/* --- BOTÓN FLASH / LINTERNA --- */
+/* Mensaje de orientación */
+.orientationMessage {
+  position: absolute;
+  top: 30%;
+  width: 100%;
+  text-align: center;
+  color: var(--torch-active);
+  font-weight: bold;
+  text-shadow: 0 2px 4px black;
+  z-index: 25;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 10px;
+  border-radius: 10px;
+  margin: 0 20px;
+}
+
+/* Botón de flash */
 .torchButton {
   position: absolute;
   bottom: 40px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255,255,255,0.5);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   color: white;
   width: 60px;
   height: 60px;
@@ -501,40 +279,160 @@
   cursor: pointer;
   z-index: 30;
   backdrop-filter: blur(4px);
+  transition: all 0.3s;
 }
 
-.torchButtonActive {
+.torchButton.active {
   background: rgba(255, 215, 0, 0.3);
-  color: #ffd700;
-  border-color: #ffd700;
+  color: var(--torch-active);
+  border-color: var(--torch-active);
   box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
 }
 
-/* Tabs inferiores del scanner (Cámara, Físico, Subir) */
+/* Tabs inferiores */
 .scannerTabs {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(0,0,0,0.8);
-    display: flex;
-    justify_content: space-around;
-    padding: 10px;
-    z-index: 25;
+  position: relative;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: space-around;
+  padding: 10px;
+  z-index: 40;
 }
 
-.scannerTab {
-    background: none;
-    border: none;
-    color: #9ca3af;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    font-size: 0.8rem;
-    gap: 5px;
-    padding: 10px;
+.scannerTabs button {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.8rem;
+  gap: 5px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.3s;
+  border-radius: 8px;
+  flex: 1;
 }
 
-.activeTab {
-    color: #3b82f6; /* Azul */
+.scannerTabs button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.scannerTabs button.activeTab {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+/* Modos alternativos (subida, físico) */
+.alternativeMode {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-direction: column;
+  padding: 20px;
+  text-align: center;
+}
+
+.alternativeMode p {
+  margin-top: 15px;
+  font-size: 1rem;
+}
+
+.uploadButton {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 10px;
+  font-size: 1rem;
+  cursor: pointer;
+  display: inline-block;
+  margin-top: 20px;
+  transition: background 0.3s;
+}
+
+.uploadButton:hover {
+  background: var(--primary-hover);
+}
+
+/* Input oculto para upload */
+.hiddenInput {
+  opacity: 0;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+}
+
+/* Mensajes de error */
+.errorMessage {
+  position: absolute;
+  bottom: 100px;
+  left: 20px;
+  right: 20px;
+  background: rgba(239, 68, 68, 0.9);
+  color: white;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+  z-index: 35;
+}
+
+.retryButton {
+  background: white;
+  color: var(--danger-color);
+  border: none;
+  padding: 5px 15px;
+  border-radius: 5px;
+  margin-top: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+  .modalContent {
+    width: 90%;
+    height: 90%;
+    max-width: 800px;
+    border-radius: 20px;
+    overflow: hidden;
+  }
+  
+  .scannerOverlay {
+    max-width: 500px;
+    height: 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modalHeader {
+    padding: 15px;
+  }
+  
+  .modalHeader h3 {
+    font-size: 1rem;
+  }
+  
+  .scannerHint {
+    font-size: 0.85rem;
+    top: 70%;
+  }
 }
