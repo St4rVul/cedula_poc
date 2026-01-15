@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import ScannerModal from './components/ScannerModal';
-import styles from './styles.module.css';
+import styles from './components/styles.module.css';
 
 function App() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
