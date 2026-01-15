@@ -4,7 +4,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTimes, faBolt } from "@fortawesome/free-solid-svg-icons"; // Importamos rayo para flash
 import styles from "./styles.module.css";
 import { APELLIDOS_COLOMBIANOS } from "../utils/apellidos_colombianos";
-import { faBolt } from "@fortawesome/free-solid-svg-icons"; // <--- AGREGA ESTO EN LOS IMPORTS
 
 
 // (LA LÓGICA DE PARSEAR SE MANTIENE IGUAL, LA OMITO PARA AHORRAR ESPACIO PERO DEBES DEJARLA)
