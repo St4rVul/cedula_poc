@@ -2,101 +2,96 @@
 :root {
   --primary-color: #2563eb;
   --primary-hover: #1d4ed8;
-  --bg-color: #f3f4f6;
-  --card-bg: #ffffff;
-  --text-main: #1f2937;
-  --text-muted: #6b7280;
-  --border-color: #e5e7eb;
   --success-color: #10b981;
   --danger-color: #ef4444;
-  --torch-active: #ffd700;
+  --warning-color: #f59e0b;
 }
 
-/* Contenedor Principal (App) */
+/* Contenedor Principal */
 .formContainer {
   max-width: 600px;
   margin: 0 auto;
   padding: 20px;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  color: var(--text-main);
-  background-color: var(--bg-color);
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
+  color: white;
 }
 
 .formContainer h1 {
   text-align: center;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   margin-bottom: 2rem;
-  color: #111827;
   font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
-/* --- BOTÓN PRINCIPAL --- */
+/* Botón Principal */
 .scanBtn {
-  background-color: var(--primary-color);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  padding: 16px 24px;
-  border-radius: 12px;
-  font-size: 1.1rem;
+  padding: 20px 30px;
+  border-radius: 15px;
+  font-size: 1.2rem;
   font-weight: 600;
   width: 100%;
   cursor: pointer;
-  margin-bottom: 25px;
+  margin: 20px 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2);
-  transition: all 0.2s ease;
-  -webkit-tap-highlight-color: transparent;
+  gap: 15px;
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+}
+
+.scanBtn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 30px rgba(102, 126, 234, 0.6);
 }
 
 .scanBtn:active {
-  transform: scale(0.98);
-  background-color: var(--primary-hover);
+  transform: translateY(1px);
 }
 
-/* --- INPUTS --- */
+/* Inputs */
 .inputGroup {
-  margin-bottom: 15px;
-  background: var(--card-bg);
-  padding: 12px;
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 15px;
+  padding: 15px;
+  margin: 15px 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .inputGroup label {
   display: block;
-  margin-bottom: 6px;
-  font-size: 0.85rem;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
   font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .inputGroup input {
   width: 100%;
-  padding: 8px 0;
-  border: none;
-  border-bottom: 2px solid transparent;
-  font-size: 1.1rem;
-  color: var(--text-main);
+  padding: 12px 0;
   background: transparent;
+  border: none;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+  font-size: 1.1rem;
+  color: white;
   outline: none;
-  font-family: monospace;
+  font-family: 'Courier New', monospace;
 }
 
-/* Estilo para inputs de solo lectura */
 .inputGroup input[readonly] {
-  color: #111827;
-  font-weight: 500;
-  cursor: default;
+  color: #e5e7eb;
+  font-weight: 600;
+  border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
-/* --- MODAL (Scanner) --- */
+/* Modal Overlay */
 .modalOverlay {
   position: fixed;
   top: 0;
@@ -104,12 +99,12 @@
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.95);
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(10px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 9999;
-  animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.3s ease-out;
 }
 
 .modalContent {
@@ -123,7 +118,7 @@
   overflow: hidden;
 }
 
-/* Header del Modal */
+/* Header */
 .modalHeader {
   position: absolute;
   top: 0;
@@ -133,141 +128,187 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  z-index: 50;
+  z-index: 1000;
   background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
 }
 
 .modalHeader h3 {
   color: white;
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
+  font-weight: 600;
   text-shadow: 0 2px 4px rgba(0,0,0,0.5);
 }
 
 .closeButton {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
   border: none;
   color: white;
-  width: 40px;
-  height: 40px;
+  width: 45px;
+  height: 45px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  backdrop-filter: blur(4px);
-  transition: background 0.3s;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s;
 }
 
 .closeButton:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.25);
+  transform: rotate(90deg);
 }
 
-/* --- CONTENEDOR DE SCANNER --- */
+/* Scanner Container */
 .scannerContainer {
   flex: 1;
   position: relative;
+  background: #000;
   display: flex;
   flex-direction: column;
-  background: #000;
 }
 
-/* Video container */
+/* Video Container */
 .videoContainer {
   flex: 1;
   position: relative;
   overflow: hidden;
   background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .videoContainer video {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s ease;
+  transform: scaleX(-1); /* Espejo para parecer natural */
 }
 
-/* Rotación forzada para modo vertical */
-.videoContainer.portrait video {
+/* FORZAR LANDSCAPE - ROTACIÓN 90 GRADOS EN VERTICAL */
+.videoContainer.forceLandscape {
   transform: rotate(90deg);
+  transform-origin: center;
   width: 100vh;
   height: 100vw;
-  max-width: none;
-  max-height: none;
+  max-width: 100vh;
+  max-height: 100vw;
 }
 
-/* Overlay de escaneo */
+.videoContainer.forceLandscape video {
+  transform: scaleX(-1) rotate(-90deg);
+  width: 100%;
+  height: 100%;
+}
+
+/* Scanner Overlay */
 .scannerOverlay {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 85%;
-  max-width: 400px;
-  height: 120px;
-  border: 2px solid rgba(255, 255, 255, 0.7);
-  border-radius: 8px;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.7);
-  z-index: 10;
+  width: 90%;
+  max-width: 450px;
+  height: 150px;
+  border: 3px solid #00ff00;
+  border-radius: 10px;
+  box-shadow: 
+    0 0 0 9999px rgba(0, 0, 0, 0.85),
+    0 0 30px rgba(0, 255, 0, 0.5),
+    inset 0 0 30px rgba(0, 255, 0, 0.3);
+  z-index: 100;
   overflow: hidden;
-  pointer-events: none;
+  animation: pulseBorder 2s infinite;
 }
 
-/* Línea de escaneo animada */
+@keyframes pulseBorder {
+  0%, 100% { border-color: rgba(0, 255, 0, 1); }
+  50% { border-color: rgba(0, 255, 0, 0.5); }
+}
+
+/* Línea de escaneo */
 .scanLine {
-  width: 4px;
-  height: 100%;
-  background: #ef4444;
   position: absolute;
+  top: 0;
   left: 0;
-  box-shadow: 0 0 10px #ef4444;
-  animation: scanMove 2s infinite linear;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    #ff0000 20%, 
+    #ff0000 80%, 
+    transparent 100%);
+  box-shadow: 0 0 20px #ff0000;
+  animation: scanAnimation 2s infinite linear;
 }
 
-@keyframes scanMove {
-  0% { left: 0%; opacity: 0; }
+@keyframes scanAnimation {
+  0% { top: 0; opacity: 0; }
   10% { opacity: 1; }
   90% { opacity: 1; }
-  100% { left: 100%; opacity: 0; }
+  100% { top: 100%; opacity: 0; }
 }
 
+/* Mensajes */
 .scannerHint {
   position: absolute;
-  top: 65%;
+  bottom: 100px;
   left: 0;
   right: 0;
   text-align: center;
   color: white;
-  font-size: 0.95rem;
-  z-index: 20;
-  text-shadow: 0 1px 3px black;
-  pointer-events: none;
-}
-
-/* Mensaje de orientación */
-.orientationMessage {
-  position: absolute;
-  top: 30%;
-  width: 100%;
-  text-align: center;
-  color: var(--torch-active);
-  font-weight: bold;
-  text-shadow: 0 2px 4px black;
-  z-index: 25;
+  font-size: 1rem;
+  padding: 0 20px;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  z-index: 150;
   background: rgba(0, 0, 0, 0.5);
-  padding: 10px;
+  padding: 10px 20px;
   border-radius: 10px;
-  margin: 0 20px;
+  margin: 0 auto;
+  width: fit-content;
+  backdrop-filter: blur(5px);
 }
 
-/* Botón de flash */
+/* Botón de Flash Mejorado */
 .torchButton {
   position: absolute;
-  bottom: 40px;
+  bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  cursor: pointer;
+  z-index: 200;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s;
+}
+
+.torchButton.active {
+  background: rgba(255, 215, 0, 0.3);
+  color: #FFD700;
+  border-color: #FFD700;
+  box-shadow: 
+    0 0 30px rgba(255, 215, 0, 0.5),
+    inset 0 0 20px rgba(255, 215, 0, 0.3);
+}
+
+/* Botón de Enfoque (Nuevo) */
+.focusButton {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  background: rgba(255, 255, 255, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.3);
   color: white;
   width: 60px;
   height: 60px;
@@ -277,46 +318,63 @@
   justify-content: center;
   font-size: 1.5rem;
   cursor: pointer;
-  z-index: 30;
-  backdrop-filter: blur(4px);
-  transition: all 0.3s;
+  z-index: 200;
+  backdrop-filter: blur(10px);
 }
 
-.torchButton.active {
-  background: rgba(255, 215, 0, 0.3);
-  color: var(--torch-active);
-  border-color: var(--torch-active);
-  box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+.focusButton:active {
+  background: rgba(255, 255, 255, 0.3);
 }
 
-/* Tabs inferiores */
+/* Indicador de Datos Detectados */
+.dataIndicator {
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(16, 185, 129, 0.9);
+  color: white;
+  padding: 15px 30px;
+  border-radius: 25px;
+  font-weight: 600;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideIn 0.5s ease-out;
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+}
+
+@keyframes slideIn {
+  from { transform: translate(-50%, -20px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+/* Tabs */
 .scannerTabs {
   position: relative;
   background: rgba(0, 0, 0, 0.9);
   display: flex;
   justify-content: space-around;
-  padding: 10px;
-  z-index: 40;
+  padding: 15px 10px;
+  z-index: 400;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .scannerTabs button {
-  background: none;
+  background: transparent;
   border: none;
   color: #9ca3af;
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-size: 0.8rem;
-  gap: 5px;
-  padding: 10px;
+  font-size: 0.9rem;
+  gap: 8px;
+  padding: 10px 15px;
   cursor: pointer;
   transition: all 0.3s;
-  border-radius: 8px;
+  border-radius: 10px;
   flex: 1;
-}
-
-.scannerTabs button:hover {
-  background: rgba(255, 255, 255, 0.1);
 }
 
 .scannerTabs button.activeTab {
@@ -324,7 +382,11 @@
   background: rgba(59, 130, 246, 0.1);
 }
 
-/* Modos alternativos (subida, físico) */
+.scannerTabs button:not(.activeTab):hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Modos alternativos */
 .alternativeMode {
   flex: 1;
   display: flex;
@@ -332,107 +394,124 @@
   justify-content: center;
   color: white;
   flex-direction: column;
-  padding: 20px;
+  padding: 40px 20px;
   text-align: center;
 }
 
 .alternativeMode p {
-  margin-top: 15px;
-  font-size: 1rem;
+  margin: 20px 0;
+  font-size: 1.1rem;
 }
 
 .uploadButton {
-  background: var(--primary-color);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  padding: 15px 30px;
-  border-radius: 10px;
-  font-size: 1rem;
+  padding: 15px 40px;
+  border-radius: 25px;
+  font-size: 1.1rem;
   cursor: pointer;
-  display: inline-block;
   margin-top: 20px;
-  transition: background 0.3s;
+  transition: all 0.3s;
+  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
 }
 
 .uploadButton:hover {
-  background: var(--primary-hover);
+  transform: translateY(-3px);
+  box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
 }
 
-/* Input oculto para upload */
-.hiddenInput {
-  opacity: 0;
+/* Indicador de carga */
+.loadingOverlay {
   position: absolute;
-  width: 1px;
-  height: 1px;
-}
-
-/* Mensajes de error */
-.errorMessage {
-  position: absolute;
-  bottom: 100px;
-  left: 20px;
-  right: 20px;
-  background: rgba(239, 68, 68, 0.9);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
   color: white;
-  padding: 10px;
-  border-radius: 8px;
-  text-align: center;
-  z-index: 35;
 }
 
-.retryButton {
-  background: white;
-  color: var(--danger-color);
-  border: none;
-  padding: 5px 15px;
-  border-radius: 5px;
-  margin-top: 8px;
-  cursor: pointer;
-  font-weight: bold;
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top-color: #3b82f6;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
 }
 
-/* Animaciones */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Animaciones generales */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+@keyframes vibrate {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
 }
 
-.spin {
-  animation: spin 1s linear infinite;
+.vibrate {
+  animation: vibrate 0.1s linear 3;
 }
 
-/* Responsive */
+/* Mejoras para Android/Samsung */
+.androidOptimized video {
+  -webkit-transform: scaleX(-1);
+  transform: scaleX(-1);
+}
+
+.androidOptimized .torchButton {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.androidOptimized button {
+  -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Media Queries para diferentes dispositivos */
+@media (max-width: 480px) {
+  .scannerOverlay {
+    width: 95%;
+    height: 120px;
+  }
+  
+  .torchButton {
+    width: 65px;
+    height: 65px;
+    bottom: 25px;
+  }
+  
+  .scannerHint {
+    bottom: 80px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Para tablets y pantallas más grandes */
 @media (min-width: 768px) {
   .modalContent {
     width: 90%;
     height: 90%;
-    max-width: 800px;
+    max-width: 1000px;
     border-radius: 20px;
     overflow: hidden;
   }
   
   .scannerOverlay {
-    max-width: 500px;
-    height: 150px;
-  }
-}
-
-@media (max-width: 480px) {
-  .modalHeader {
-    padding: 15px;
-  }
-  
-  .modalHeader h3 {
-    font-size: 1rem;
-  }
-  
-  .scannerHint {
-    font-size: 0.85rem;
-    top: 70%;
+    max-width: 600px;
+    height: 180px;
   }
 }
